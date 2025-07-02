@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { questions } from '@/data/questions';
 import { UserAnswers, AIAnalysisResult, TeacherReport } from '@/types/report';
-import { callGeminiTextAPI, callGeminiImageAPI, compressImage } from '@/utils/api';
+import { callGeminiTextAPI, callGeminiImageAPI } from '@/utils/api';
+import { uploadImageToSupabase, saveReportToSupabase } from '@/services/supabaseService';
 import { toast } from '@/hooks/use-toast';
 
 interface QuestionPageProps {
@@ -53,22 +54,28 @@ const QuestionPage = ({ onPageChange, onResultGenerated }: QuestionPageProps) =>
       console.log('텍스트 분석 완료:', textResult);
       
       console.log('이미지 생성 시작...');
-      const imageUrl = await callGeminiImageAPI(textResult.image_prompt);
+      const imageBlob = await callGeminiImageAPI(textResult.image_prompt);
       console.log('이미지 생성 완료');
       
-      console.log('이미지 압축 시작...');
-      const compressedImageUrl = await compressImage(imageUrl, 0.7);
-      console.log('이미지 압축 완료');
+      console.log('Supabase에 이미지 업로드 시작...');
+      const fileName = `teacher-${Date.now()}.png`;
+      const imageUrl = await uploadImageToSupabase(imageBlob, fileName);
+      console.log('이미지 업로드 완료:', imageUrl);
 
       const finalResult: TeacherReport = {
         character: textResult.character,
         slogan: textResult.slogan,
         strengths: textResult.strengths,
         growth_point: textResult.growth_point,
-        imageUrl: compressedImageUrl,
+        imageUrl: imageUrl,
         createdAt: new Date().toISOString()
       };
 
+      console.log('Supabase에 결과 저장 시작...');
+      const reportId = await saveReportToSupabase(finalResult);
+      console.log('결과 저장 완료:', reportId);
+
+      finalResult.id = reportId;
       onResultGenerated(finalResult);
       
     } catch (error) {

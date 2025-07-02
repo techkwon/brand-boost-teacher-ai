@@ -9,22 +9,25 @@ export async function downloadPDF(elementId: string): Promise<void> {
   }
 
   const canvas = await html2canvas(element, {
-    scale: 2,
+    scale: 3, // Increased scale for better quality
     useCORS: true,
-    backgroundColor: '#ffffff'
+    backgroundColor: '#ffffff',
+    allowTaint: false,
+    imageTimeout: 0,
+    removeContainer: true
   });
 
-  const imgData = canvas.toDataURL('image/png');
-  const imgWidth = canvas.width;
-  const imgHeight = canvas.height;
+  const imgData = canvas.toDataURL('image/png', 1.0); // Maximum quality
+  const imgWidth = 210; // A4 width in mm
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  const pdf = new jsPDF({
-    orientation: 'p',
-    unit: 'px',
-    format: [imgWidth, imgHeight]
-  });
-
-  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  
+  // Center the image on the page
+  const x = (pdf.internal.pageSize.getWidth() - imgWidth) / 2;
+  const y = 10;
+  
+  pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
   pdf.save('쌤BTI_나의브랜딩리포트.pdf');
 }
 
@@ -35,13 +38,22 @@ export async function downloadImage(elementId: string, filename: string): Promis
   }
 
   const canvas = await html2canvas(element, {
-    scale: 2,
+    scale: 3, // Increased scale for better quality
     useCORS: true,
-    backgroundColor: '#ffffff'
+    backgroundColor: '#ffffff',
+    allowTaint: false,
+    imageTimeout: 0,
+    removeContainer: true
   });
 
-  const link = document.createElement('a');
-  link.download = filename;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  // Convert to high quality PNG
+  canvas.toBlob((blob) => {
+    if (blob) {
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = URL.createObjectURL(blob);
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+  }, 'image/png', 1.0); // Maximum quality
 }

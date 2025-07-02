@@ -65,7 +65,7 @@ Q5. 고민/성장점: ${answers.Q5}
   }
 }
 
-export async function callGeminiImageAPI(prompt: string): Promise<string> {
+export async function callGeminiImageAPI(prompt: string): Promise<Blob> {
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`;
   
   const payload = {
@@ -88,30 +88,26 @@ export async function callGeminiImageAPI(prompt: string): Promise<string> {
   const result = await response.json();
   
   if (result.predictions && result.predictions.length > 0) {
-    return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+    // Convert base64 to blob for better quality
+    const base64Data = result.predictions[0].bytesBase64Encoded;
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: 'image/png' });
   } else {
     throw new Error('AI로부터 이미지 생성 결과를 받지 못했습니다.');
   }
 }
 
-export function compressImage(base64Str: string, quality: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      } else {
-        reject(new Error('Canvas context를 생성할 수 없습니다.'));
-      }
-    };
-    img.onerror = () => {
-      reject(new Error('이미지 압축에 실패했습니다.'));
-    };
-  });
+export function base64ToBlob(base64: string): Blob {
+  const byteCharacters = atob(base64.split(',')[1]);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: 'image/png' });
 }
