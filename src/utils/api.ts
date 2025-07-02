@@ -1,7 +1,6 @@
-
 import { UserAnswers, AIAnalysisResult } from '@/types/report';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+const GEMINI_API_KEY = 'AIzaSyA_NYLOkL3Wit7K3s4VPaqIRbFZzPlPcZM';
 
 export async function callGeminiTextAPI(answers: UserAnswers): Promise<AIAnalysisResult> {
   const prompt = `
