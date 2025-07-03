@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { TeacherReport } from '@/types/report';
 import { downloadPDF, downloadImage } from '@/utils/download';
@@ -11,7 +12,11 @@ interface ResultPageProps {
 }
 
 const ResultPage = ({ result, onPageChange, onRestart }: ResultPageProps) => {
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+
   const handleDownloadPDF = async () => {
+    setIsPdfLoading(true);
     try {
       await downloadPDF('result-content');
       toast({
@@ -19,15 +24,19 @@ const ResultPage = ({ result, onPageChange, onRestart }: ResultPageProps) => {
         description: "쌤BTI 리포트가 저장되었습니다."
       });
     } catch (error) {
+      console.error('PDF download error:', error);
       toast({
         title: "PDF 생성 실패",
         description: "다시 시도해주세요.",
         variant: "destructive"
       });
+    } finally {
+      setIsPdfLoading(false);
     }
   };
 
   const handleDownloadImage = async () => {
+    setIsImageLoading(true);
     try {
       await downloadImage('result-content', '쌤BTI_나의브랜딩리포트.png');
       toast({
@@ -35,11 +44,14 @@ const ResultPage = ({ result, onPageChange, onRestart }: ResultPageProps) => {
         description: "쌤BTI 리포트가 저장되었습니다."
       });
     } catch (error) {
+      console.error('Image download error:', error);
       toast({
         title: "이미지 생성 실패",
         description: "다시 시도해주세요.",
         variant: "destructive"
       });
+    } finally {
+      setIsImageLoading(false);
     }
   };
 
@@ -50,6 +62,7 @@ const ResultPage = ({ result, onPageChange, onRestart }: ResultPageProps) => {
           src={result.imageUrl}
           alt={result.character.name}
           className="w-full rounded-lg shadow-md aspect-square object-cover mb-6"
+          crossOrigin="anonymous"
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://placehold.co/600x600/e2e8f0/94a3b8?text=Image+Error';
           }}
@@ -91,15 +104,17 @@ const ResultPage = ({ result, onPageChange, onRestart }: ResultPageProps) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button 
             onClick={handleDownloadPDF}
-            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 transform hover:scale-105"
+            disabled={isPdfLoading}
+            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
           >
-            PDF로 저장
+            {isPdfLoading ? '생성 중...' : 'PDF로 저장'}
           </Button>
           <Button 
             onClick={handleDownloadImage}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 transform hover:scale-105"
+            disabled={isImageLoading}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
           >
-            이미지로 저장
+            {isImageLoading ? '생성 중...' : '이미지로 저장'}
           </Button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
