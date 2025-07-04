@@ -11,18 +11,32 @@ export async function downloadPDF(elementId: string): Promise<void> {
   // Wait for images to load
   await waitForImages(element);
 
+  // Additional wait to ensure rendering is complete
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
-    imageTimeout: 15000,
-    logging: false,
-    width: element.scrollWidth,
-    height: element.scrollHeight,
+    imageTimeout: 30000,
+    logging: true,
+    width: element.offsetWidth,
+    height: element.offsetHeight,
     scrollX: 0,
     scrollY: 0,
-    foreignObjectRendering: false
+    foreignObjectRendering: false,
+    removeContainer: true,
+    onclone: (clonedDoc) => {
+      // Ensure all styles are copied
+      const clonedElement = clonedDoc.getElementById(elementId);
+      if (clonedElement) {
+        clonedElement.style.display = 'block';
+        clonedElement.style.position = 'relative';
+        clonedElement.style.left = '0';
+        clonedElement.style.top = '0';
+      }
+    }
   });
 
   const imgData = canvas.toDataURL('image/png', 1.0);
@@ -58,18 +72,32 @@ export async function downloadImage(elementId: string, filename: string): Promis
   // Wait for images to load
   await waitForImages(element);
 
+  // Additional wait to ensure rendering is complete
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
-    imageTimeout: 15000,
-    logging: false,
-    width: element.scrollWidth,
-    height: element.scrollHeight,
+    imageTimeout: 30000,
+    logging: true,
+    width: element.offsetWidth,
+    height: element.offsetHeight,
     scrollX: 0,
     scrollY: 0,
-    foreignObjectRendering: false
+    foreignObjectRendering: false,
+    removeContainer: true,
+    onclone: (clonedDoc) => {
+      // Ensure all styles are copied
+      const clonedElement = clonedDoc.getElementById(elementId);
+      if (clonedElement) {
+        clonedElement.style.display = 'block';
+        clonedElement.style.position = 'relative';
+        clonedElement.style.left = '0';
+        clonedElement.style.top = '0';
+      }
+    }
   });
 
   // Convert to high quality PNG
@@ -93,6 +121,8 @@ function waitForImages(element: HTMLElement): Promise<void> {
     let loadedCount = 0;
     const totalImages = images.length;
 
+    console.log(`대기 중인 이미지 수: ${totalImages}`);
+
     if (totalImages === 0) {
       resolve();
       return;
@@ -100,18 +130,23 @@ function waitForImages(element: HTMLElement): Promise<void> {
 
     const onImageLoad = () => {
       loadedCount++;
+      console.log(`이미지 로드 완료: ${loadedCount}/${totalImages}`);
       if (loadedCount === totalImages) {
-        // Add a small delay to ensure rendering is complete
-        setTimeout(resolve, 100);
+        // Add a longer delay to ensure rendering is complete
+        setTimeout(resolve, 500);
       }
     };
 
-    images.forEach((img) => {
-      if (img.complete) {
+    images.forEach((img, index) => {
+      console.log(`이미지 ${index + 1} 상태:`, img.complete ? '로드됨' : '로딩중', img.src);
+      if (img.complete && img.naturalWidth > 0) {
         onImageLoad();
       } else {
         img.addEventListener('load', onImageLoad);
-        img.addEventListener('error', onImageLoad); // Count errors as loaded to avoid hanging
+        img.addEventListener('error', (e) => {
+          console.error(`이미지 로드 실패: ${img.src}`, e);
+          onImageLoad(); // Count errors as loaded to avoid hanging
+        });
       }
     });
   });
