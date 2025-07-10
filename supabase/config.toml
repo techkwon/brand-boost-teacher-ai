@@ -1,1 +1,7 @@
 project_id = "wzjjabjkgxlgvqgteppd"
+
+[functions.analyze-text]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false
