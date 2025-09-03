@@ -12,29 +12,51 @@ export async function downloadPDF(elementId: string): Promise<void> {
   await waitForImages(element);
 
   // Additional wait to ensure rendering is complete
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // Ensure the element is visible and properly styled
+  element.style.visibility = 'visible';
+  element.style.opacity = '1';
+  element.style.transform = 'none';
 
   const canvas = await html2canvas(element, {
-    scale: 2,
+    scale: 4, // Increased for better quality
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
-    imageTimeout: 30000,
+    imageTimeout: 60000, // Increased timeout
     logging: true,
     width: element.offsetWidth,
     height: element.offsetHeight,
     scrollX: 0,
     scrollY: 0,
     foreignObjectRendering: false,
-    removeContainer: true,
+    removeContainer: false, // Changed to false
     onclone: (clonedDoc) => {
-      // Ensure all styles are copied
+      // Ensure all styles are copied properly
       const clonedElement = clonedDoc.getElementById(elementId);
       if (clonedElement) {
+        // Copy all computed styles
+        const originalStyles = window.getComputedStyle(element);
+        for (let i = 0; i < originalStyles.length; i++) {
+          const prop = originalStyles[i];
+          clonedElement.style.setProperty(prop, originalStyles.getPropertyValue(prop));
+        }
+        
         clonedElement.style.display = 'block';
         clonedElement.style.position = 'relative';
         clonedElement.style.left = '0';
         clonedElement.style.top = '0';
+        clonedElement.style.visibility = 'visible';
+        clonedElement.style.opacity = '1';
+        clonedElement.style.transform = 'none';
+        
+        // Ensure all child images are loaded
+        const images = clonedElement.querySelectorAll('img');
+        images.forEach(img => {
+          img.style.opacity = '1';
+          img.style.visibility = 'visible';
+        });
       }
     }
   });
@@ -73,29 +95,51 @@ export async function downloadImage(elementId: string, filename: string): Promis
   await waitForImages(element);
 
   // Additional wait to ensure rendering is complete
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // Ensure the element is visible and properly styled
+  element.style.visibility = 'visible';
+  element.style.opacity = '1';
+  element.style.transform = 'none';
 
   const canvas = await html2canvas(element, {
-    scale: 2,
+    scale: 4, // Increased for better quality
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
-    imageTimeout: 30000,
+    imageTimeout: 60000, // Increased timeout
     logging: true,
     width: element.offsetWidth,
     height: element.offsetHeight,
     scrollX: 0,
     scrollY: 0,
     foreignObjectRendering: false,
-    removeContainer: true,
+    removeContainer: false, // Changed to false
     onclone: (clonedDoc) => {
-      // Ensure all styles are copied
+      // Ensure all styles are copied properly
       const clonedElement = clonedDoc.getElementById(elementId);
       if (clonedElement) {
+        // Copy all computed styles
+        const originalStyles = window.getComputedStyle(element);
+        for (let i = 0; i < originalStyles.length; i++) {
+          const prop = originalStyles[i];
+          clonedElement.style.setProperty(prop, originalStyles.getPropertyValue(prop));
+        }
+        
         clonedElement.style.display = 'block';
         clonedElement.style.position = 'relative';
         clonedElement.style.left = '0';
         clonedElement.style.top = '0';
+        clonedElement.style.visibility = 'visible';
+        clonedElement.style.opacity = '1';
+        clonedElement.style.transform = 'none';
+        
+        // Ensure all child images are loaded
+        const images = clonedElement.querySelectorAll('img');
+        images.forEach(img => {
+          img.style.opacity = '1';
+          img.style.visibility = 'visible';
+        });
       }
     }
   });
@@ -133,7 +177,7 @@ function waitForImages(element: HTMLElement): Promise<void> {
       console.log(`이미지 로드 완료: ${loadedCount}/${totalImages}`);
       if (loadedCount === totalImages) {
         // Add a longer delay to ensure rendering is complete
-        setTimeout(resolve, 500);
+        setTimeout(resolve, 1500); // Increased delay
       }
     };
 
