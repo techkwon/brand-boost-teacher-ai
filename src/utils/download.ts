@@ -20,29 +20,24 @@ export async function downloadPDF(elementId: string): Promise<void> {
   element.style.transform = 'none';
 
   const canvas = await html2canvas(element, {
-    scale: 4, // Increased for better quality
+    scale: 2, // 원래 화질로 복원
     useCORS: true,
     allowTaint: true,
-    backgroundColor: '#ffffff',
-    imageTimeout: 60000, // Increased timeout
+    backgroundColor: null, // 배경 투명도 제거
+    imageTimeout: 60000,
     logging: true,
     width: element.offsetWidth,
     height: element.offsetHeight,
     scrollX: 0,
     scrollY: 0,
     foreignObjectRendering: false,
-    removeContainer: false, // Changed to false
+    removeContainer: false,
+    x: 0,
+    y: 0,
     onclone: (clonedDoc) => {
-      // Ensure all styles are copied properly
       const clonedElement = clonedDoc.getElementById(elementId);
       if (clonedElement) {
-        // Copy all computed styles
-        const originalStyles = window.getComputedStyle(element);
-        for (let i = 0; i < originalStyles.length; i++) {
-          const prop = originalStyles[i];
-          clonedElement.style.setProperty(prop, originalStyles.getPropertyValue(prop));
-        }
-        
+        // 모든 스타일을 명확하게 설정
         clonedElement.style.display = 'block';
         clonedElement.style.position = 'relative';
         clonedElement.style.left = '0';
@@ -50,12 +45,24 @@ export async function downloadPDF(elementId: string): Promise<void> {
         clonedElement.style.visibility = 'visible';
         clonedElement.style.opacity = '1';
         clonedElement.style.transform = 'none';
+        clonedElement.style.filter = 'none'; // 필터 제거
+        clonedElement.style.mixBlendMode = 'normal'; // 블렌드 모드 정상화
         
-        // Ensure all child images are loaded
+        // 모든 자식 요소의 투명도 정상화
+        const allElements = clonedElement.querySelectorAll('*');
+        allElements.forEach(el => {
+          (el as HTMLElement).style.opacity = '1';
+          (el as HTMLElement).style.visibility = 'visible';
+          (el as HTMLElement).style.filter = 'none';
+        });
+        
+        // 이미지 요소 특별 처리
         const images = clonedElement.querySelectorAll('img');
         images.forEach(img => {
           img.style.opacity = '1';
           img.style.visibility = 'visible';
+          img.style.filter = 'none';
+          img.style.mixBlendMode = 'normal';
         });
       }
     }
@@ -103,29 +110,24 @@ export async function downloadImage(elementId: string, filename: string): Promis
   element.style.transform = 'none';
 
   const canvas = await html2canvas(element, {
-    scale: 4, // Increased for better quality
+    scale: 2, // 원래 화질로 복원
     useCORS: true,
     allowTaint: true,
-    backgroundColor: '#ffffff',
-    imageTimeout: 60000, // Increased timeout
+    backgroundColor: null, // 배경 투명도 제거
+    imageTimeout: 60000,
     logging: true,
     width: element.offsetWidth,
     height: element.offsetHeight,
     scrollX: 0,
     scrollY: 0,
     foreignObjectRendering: false,
-    removeContainer: false, // Changed to false
+    removeContainer: false,
+    x: 0,
+    y: 0,
     onclone: (clonedDoc) => {
-      // Ensure all styles are copied properly
       const clonedElement = clonedDoc.getElementById(elementId);
       if (clonedElement) {
-        // Copy all computed styles
-        const originalStyles = window.getComputedStyle(element);
-        for (let i = 0; i < originalStyles.length; i++) {
-          const prop = originalStyles[i];
-          clonedElement.style.setProperty(prop, originalStyles.getPropertyValue(prop));
-        }
-        
+        // 모든 스타일을 명확하게 설정
         clonedElement.style.display = 'block';
         clonedElement.style.position = 'relative';
         clonedElement.style.left = '0';
@@ -133,12 +135,24 @@ export async function downloadImage(elementId: string, filename: string): Promis
         clonedElement.style.visibility = 'visible';
         clonedElement.style.opacity = '1';
         clonedElement.style.transform = 'none';
+        clonedElement.style.filter = 'none'; // 필터 제거
+        clonedElement.style.mixBlendMode = 'normal'; // 블렌드 모드 정상화
         
-        // Ensure all child images are loaded
+        // 모든 자식 요소의 투명도 정상화
+        const allElements = clonedElement.querySelectorAll('*');
+        allElements.forEach(el => {
+          (el as HTMLElement).style.opacity = '1';
+          (el as HTMLElement).style.visibility = 'visible';
+          (el as HTMLElement).style.filter = 'none';
+        });
+        
+        // 이미지 요소 특별 처리
         const images = clonedElement.querySelectorAll('img');
         images.forEach(img => {
           img.style.opacity = '1';
           img.style.visibility = 'visible';
+          img.style.filter = 'none';
+          img.style.mixBlendMode = 'normal';
         });
       }
     }
