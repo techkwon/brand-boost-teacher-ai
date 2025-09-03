@@ -100,27 +100,46 @@ export async function downloadImage(elementId: string, filename: string): Promis
 
   console.log('Starting image download process...');
   
-  // 스크롤을 최상단으로 이동
-  window.scrollTo(0, 0);
+  // 애니메이션 클래스들을 임시로 제거
+  const originalClasses = element.className;
+  console.log('Original classes:', originalClasses);
   
-  // 잠시 대기
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // 애니메이션 관련 클래스 제거
+  element.className = originalClasses
+    .replace(/animate-in/g, '')
+    .replace(/fade-in/g, '')
+    .replace(/duration-\d+/g, '')
+    .trim();
   
-  // 이미지 로딩 대기
-  await waitForImages(element);
+  // 요소 스타일 강제 설정
+  const originalStyle = {
+    opacity: element.style.opacity,
+    visibility: element.style.visibility,
+    transform: element.style.transform
+  };
   
-  // 추가 대기시간
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // 요소가 화면에 보이는지 확인
-  element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  await new Promise(resolve => setTimeout(resolve, 500));
-
+  element.style.opacity = '1';
+  element.style.visibility = 'visible';
+  element.style.transform = 'none';
+  
+  console.log('Animation classes removed, element prepared');
+  
   try {
+    // 스크롤 위치 조정
+    element.scrollIntoView({ behavior: 'instant', block: 'start' });
+    
+    // 이미지 로딩 완료 대기
+    await waitForImages(element);
+    
+    // 렌더링 완료 대기
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('Starting canvas capture...');
+    
     const canvas = await html2canvas(element, {
       allowTaint: true,
       useCORS: true,
-      scale: 1,
+      scale: 2,
       width: element.scrollWidth,
       height: element.scrollHeight,
       backgroundColor: '#ffffff',
@@ -128,48 +147,57 @@ export async function downloadImage(elementId: string, filename: string): Promis
       imageTimeout: 0,
       removeContainer: false,
       foreignObjectRendering: false,
-      onclone: (clonedDoc, clonedElement) => {
-        // 클론된 문서의 모든 스타일 시트를 복사
-        const originalStyleSheets = document.styleSheets;
-        Array.from(originalStyleSheets).forEach((styleSheet) => {
-          try {
-            const newStyleEl = clonedDoc.createElement('style');
-            Array.from(styleSheet.cssRules).forEach((rule) => {
-              newStyleEl.appendChild(clonedDoc.createTextNode(rule.cssText));
-            });
-            clonedDoc.head.appendChild(newStyleEl);
-          } catch (e) {
-            console.warn('Could not copy stylesheet:', e);
-          }
-        });
-        
-        // 모든 요소의 가시성 강제 설정
-        const allElements = clonedElement.querySelectorAll('*');
-        allElements.forEach((el: any) => {
-          el.style.opacity = '1';
-          el.style.visibility = 'visible';
-        });
+      onclone: (clonedDoc) => {
+        // 클론된 문서에서도 애니메이션 제거
+        const clonedElement = clonedDoc.getElementById(elementId);
+        if (clonedElement) {
+          clonedElement.style.opacity = '1';
+          clonedElement.style.visibility = 'visible';
+          clonedElement.style.transform = 'none';
+          clonedElement.style.animation = 'none';
+          clonedElement.style.transition = 'none';
+          
+          // 모든 자식 요소도 처리
+          const allElements = clonedElement.querySelectorAll('*');
+          allElements.forEach((el: any) => {
+            el.style.opacity = '1';
+            el.style.visibility = 'visible';
+            el.style.animation = 'none';
+            el.style.transition = 'none';
+          });
+        }
       }
     });
 
-    console.log('Canvas created:', canvas.width, 'x', canvas.height);
+    console.log('Canvas created successfully:', canvas.width, 'x', canvas.height);
 
-    // 캔버스가 비어있는지 확인
+    // 캔버스 내용 검증
     const ctx = canvas.getContext('2d');
-    const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData?.data || [];
-    const isEmpty = data.every((value, index) => {
-      // 알파 채널(투명도)이 아닌 경우만 검사
-      return index % 4 === 3 || value === 255;
-    });
-
-    if (isEmpty) {
-      throw new Error('생성된 이미지가 비어있습니다. 다시 시도해주세요.');
+    if (ctx) {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // 완전히 투명한 픽셀의 개수 확인
+      let transparentPixels = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] === 0) { // 알파값이 0인 경우
+          transparentPixels++;
+        }
+      }
+      
+      const totalPixels = data.length / 4;
+      const transparencyRatio = transparentPixels / totalPixels;
+      
+      console.log(`Canvas analysis: ${transparentPixels}/${totalPixels} transparent pixels (${(transparencyRatio * 100).toFixed(2)}%)`);
+      
+      if (transparencyRatio > 0.9) {
+        throw new Error('생성된 이미지가 거의 비어있습니다. 페이지가 완전히 로드된 후 다시 시도해주세요.');
+      }
     }
 
     canvas.toBlob((blob) => {
       if (!blob) {
-        throw new Error('이미지 생성에 실패했습니다.');
+        throw new Error('이미지 변환에 실패했습니다.');
       }
       
       const link = document.createElement('a');
@@ -185,7 +213,14 @@ export async function downloadImage(elementId: string, filename: string): Promis
 
   } catch (error) {
     console.error('Canvas capture failed:', error);
-    throw new Error('이미지 생성 중 오류가 발생했습니다: ' + (error as Error).message);
+    throw error;
+  } finally {
+    // 원래 클래스와 스타일 복원
+    element.className = originalClasses;
+    element.style.opacity = originalStyle.opacity;
+    element.style.visibility = originalStyle.visibility;
+    element.style.transform = originalStyle.transform;
+    console.log('Original classes and styles restored');
   }
 }
 
