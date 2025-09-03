@@ -52,7 +52,7 @@ Q5. 고민/성장점: ${answers.Q5}
 ## OUTPUT:
 `;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`;
     
     const response = await fetch(apiUrl, {
       method: 'POST',

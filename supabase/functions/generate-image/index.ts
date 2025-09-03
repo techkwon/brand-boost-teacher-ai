@@ -21,7 +21,7 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.');
     }
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${geminiApiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-fast-generate-001:predict?key=${geminiApiKey}`;
     
     const payload = {
       instances: [{ prompt: prompt }],
