@@ -98,64 +98,60 @@ export async function downloadImage(elementId: string, filename: string): Promis
     throw new Error('요소를 찾을 수 없습니다.');
   }
 
-  // Wait for images to load
+  console.log('Starting image download process...');
+  
+  // Ensure element is visible and properly positioned
+  const rect = element.getBoundingClientRect();
+  console.log('Element dimensions:', rect.width, 'x', rect.height);
+  
+  if (rect.width === 0 || rect.height === 0) {
+    throw new Error('요소가 화면에 표시되지 않았습니다.');
+  }
+
+  // Wait for all images to load
   await waitForImages(element);
+  console.log('All images loaded, starting canvas capture...');
 
-  // Additional wait to ensure rendering is complete
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // Force element visibility before capture
-  const originalStyles = {
-    visibility: element.style.visibility,
-    opacity: element.style.opacity,
-    transform: element.style.transform,
-    filter: element.style.filter
-  };
-
-  element.style.visibility = 'visible';
-  element.style.opacity = '1';
-  element.style.transform = 'none';
-  element.style.filter = 'none';
+  // Add a delay to ensure everything is fully rendered
+  await new Promise(resolve => setTimeout(resolve, 1500));
 
   try {
     const canvas = await html2canvas(element, {
-      scale: 1, // 원본 크기로 설정
+      height: rect.height,
+      width: rect.width,
+      scale: 2,
       useCORS: true,
       allowTaint: false,
-      backgroundColor: '#ffffff', // 명확한 배경색 설정
-      imageTimeout: 15000,
-      logging: false,
-      width: element.offsetWidth,
-      height: element.offsetHeight,
+      backgroundColor: '#ffffff',
+      logging: true,
       scrollX: 0,
       scrollY: 0,
-      foreignObjectRendering: true, // 변경
-      removeContainer: true, // 변경
-      ignoreElements: (element) => {
-        // 불필요한 요소 제거
-        return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
-      }
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight
     });
 
-    // Restore original styles
-    Object.assign(element.style, originalStyles);
+    console.log('Canvas created successfully:', canvas.width, 'x', canvas.height);
 
-    // Convert to high quality PNG with original colors
+    // Create download link
     canvas.toBlob((blob) => {
-      if (blob) {
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = URL.createObjectURL(blob);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
+      if (!blob) {
+        throw new Error('Canvas to blob conversion failed');
       }
+      
+      console.log('Blob created, starting download...');
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = URL.createObjectURL(blob);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      console.log('Download completed');
     }, 'image/png', 1.0);
+
   } catch (error) {
-    // Restore original styles on error
-    Object.assign(element.style, originalStyles);
-    throw error;
+    console.error('Canvas capture failed:', error);
+    throw new Error('이미지 생성 중 오류가 발생했습니다: ' + (error as Error).message);
   }
 }
 
