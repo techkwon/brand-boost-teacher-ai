@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { TeacherReport } from '@/types/report';
-import { downloadPDF, downloadImage } from '@/utils/download';
+import { downloadImage } from '@/utils/download';
 import { toast } from '@/hooks/use-toast';
 
 interface ResultPageProps {
@@ -12,28 +12,7 @@ interface ResultPageProps {
 }
 
 const ResultPage = ({ result, onPageChange, onRestart }: ResultPageProps) => {
-  const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
-
-  const handleDownloadPDF = async () => {
-    setIsPdfLoading(true);
-    try {
-      await downloadPDF('result-content');
-      toast({
-        title: "PDF 다운로드 완료!",
-        description: "쌤BTI 리포트가 저장되었습니다."
-      });
-    } catch (error) {
-      console.error('PDF download error:', error);
-      toast({
-        title: "PDF 생성 실패",
-        description: "다시 시도해주세요.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsPdfLoading(false);
-    }
-  };
 
   const handleDownloadImage = async () => {
     setIsImageLoading(true);
@@ -101,22 +80,13 @@ const ResultPage = ({ result, onPageChange, onRestart }: ResultPageProps) => {
       </div>
       
       <div className="mt-6 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Button 
-            onClick={handleDownloadPDF}
-            disabled={isPdfLoading}
-            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
-          >
-            {isPdfLoading ? '생성 중...' : 'PDF로 저장'}
-          </Button>
-          <Button 
-            onClick={handleDownloadImage}
-            disabled={isImageLoading}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
-          >
-            {isImageLoading ? '생성 중...' : '이미지로 저장'}
-          </Button>
-        </div>
+        <Button 
+          onClick={handleDownloadImage}
+          disabled={isImageLoading}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
+        >
+          {isImageLoading ? '생성 중...' : '이미지로 저장'}
+        </Button>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button 
             onClick={() => onPageChange('gallery')}
