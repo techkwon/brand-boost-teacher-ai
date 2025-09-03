@@ -102,74 +102,61 @@ export async function downloadImage(elementId: string, filename: string): Promis
   await waitForImages(element);
 
   // Additional wait to ensure rendering is complete
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // Ensure the element is visible and properly styled
+  // Force element visibility before capture
+  const originalStyles = {
+    visibility: element.style.visibility,
+    opacity: element.style.opacity,
+    transform: element.style.transform,
+    filter: element.style.filter
+  };
+
   element.style.visibility = 'visible';
   element.style.opacity = '1';
   element.style.transform = 'none';
+  element.style.filter = 'none';
 
-  const canvas = await html2canvas(element, {
-    scale: 2, // 원래 화질로 복원
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: null, // 배경 투명도 제거
-    imageTimeout: 60000,
-    logging: true,
-    width: element.offsetWidth,
-    height: element.offsetHeight,
-    scrollX: 0,
-    scrollY: 0,
-    foreignObjectRendering: false,
-    removeContainer: false,
-    x: 0,
-    y: 0,
-    onclone: (clonedDoc) => {
-      const clonedElement = clonedDoc.getElementById(elementId);
-      if (clonedElement) {
-        // 모든 스타일을 명확하게 설정
-        clonedElement.style.display = 'block';
-        clonedElement.style.position = 'relative';
-        clonedElement.style.left = '0';
-        clonedElement.style.top = '0';
-        clonedElement.style.visibility = 'visible';
-        clonedElement.style.opacity = '1';
-        clonedElement.style.transform = 'none';
-        clonedElement.style.filter = 'none'; // 필터 제거
-        clonedElement.style.mixBlendMode = 'normal'; // 블렌드 모드 정상화
-        
-        // 모든 자식 요소의 투명도 정상화
-        const allElements = clonedElement.querySelectorAll('*');
-        allElements.forEach(el => {
-          (el as HTMLElement).style.opacity = '1';
-          (el as HTMLElement).style.visibility = 'visible';
-          (el as HTMLElement).style.filter = 'none';
-        });
-        
-        // 이미지 요소 특별 처리
-        const images = clonedElement.querySelectorAll('img');
-        images.forEach(img => {
-          img.style.opacity = '1';
-          img.style.visibility = 'visible';
-          img.style.filter = 'none';
-          img.style.mixBlendMode = 'normal';
-        });
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 1, // 원본 크기로 설정
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff', // 명확한 배경색 설정
+      imageTimeout: 15000,
+      logging: false,
+      width: element.offsetWidth,
+      height: element.offsetHeight,
+      scrollX: 0,
+      scrollY: 0,
+      foreignObjectRendering: true, // 변경
+      removeContainer: true, // 변경
+      ignoreElements: (element) => {
+        // 불필요한 요소 제거
+        return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
       }
-    }
-  });
+    });
 
-  // Convert to high quality PNG
-  canvas.toBlob((blob) => {
-    if (blob) {
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = URL.createObjectURL(blob);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-    }
-  }, 'image/png', 1.0);
+    // Restore original styles
+    Object.assign(element.style, originalStyles);
+
+    // Convert to high quality PNG with original colors
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = URL.createObjectURL(blob);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      }
+    }, 'image/png', 1.0);
+  } catch (error) {
+    // Restore original styles on error
+    Object.assign(element.style, originalStyles);
+    throw error;
+  }
 }
 
 // Helper function to wait for all images to load
