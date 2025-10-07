@@ -54,15 +54,19 @@ Deno.serve(async (req) => {
         const imagePaths = oldReports
           .map(report => {
             const url = report.image_url;
-            // URL에서 파일 경로 추출: https://.../storage/v1/object/public/teacher-images/...
-            const match = url.match(/teacher-images\/(.+)$/);
-            return match ? match[1] : null;
+            // URL에서 파일 이름만 추출
+            const parts = url.split('/');
+            const fileName = parts[parts.length - 1];
+            console.log(`Extracting filename: ${fileName} from ${url}`);
+            return fileName;
           })
-          .filter(path => path !== null) as string[];
+          .filter(path => path && path.length > 0);
 
         if (imagePaths.length > 0) {
           console.log(`Deleting ${imagePaths.length} images from storage...`);
-          const { error: storageError } = await supabase.storage
+          console.log('File paths to delete:', imagePaths);
+          
+          const { data: deleteData, error: storageError } = await supabase.storage
             .from('teacher-images')
             .remove(imagePaths);
 
@@ -70,7 +74,8 @@ Deno.serve(async (req) => {
             console.error('Error deleting images from storage:', storageError);
             // 스토리지 삭제 실패해도 계속 진행
           } else {
-            console.log('Images deleted successfully');
+            console.log('Storage delete response:', deleteData);
+            console.log(`Successfully deleted ${imagePaths.length} images from storage`);
           }
         }
 
