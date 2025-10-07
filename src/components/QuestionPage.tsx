@@ -7,6 +7,7 @@ import { UserAnswers, AIAnalysisResult, TeacherReport } from '@/types/report';
 import { callGeminiTextAPI, callGeminiImageAPI } from '@/utils/api';
 import { uploadImageToSupabase, saveReportToSupabase } from '@/services/supabaseService';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface QuestionPageProps {
   onPageChange: (page: 'start' | 'question' | 'loading' | 'result' | 'gallery') => void;
@@ -74,6 +75,18 @@ const QuestionPage = ({ onPageChange, onResultGenerated }: QuestionPageProps) =>
       console.log('Supabase에 결과 저장 시작...');
       const reportId = await saveReportToSupabase(finalResult);
       console.log('결과 저장 완료:', reportId);
+
+      // 자동 정리 함수 호출 (비동기로 실행, 결과를 기다리지 않음)
+      console.log('오래된 리포트 정리 시작...');
+      supabase.functions.invoke('cleanup-old-reports').then((result) => {
+        if (result.error) {
+          console.error('정리 실패:', result.error);
+        } else {
+          console.log('정리 완료:', result.data);
+        }
+      }).catch(error => {
+        console.error('정리 함수 호출 오류:', error);
+      });
 
       finalResult.id = reportId;
       onResultGenerated(finalResult);
