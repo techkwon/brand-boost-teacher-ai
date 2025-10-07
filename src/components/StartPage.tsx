@@ -26,6 +26,17 @@ const StartPage = ({ onPageChange }: StartPageProps) => {
         >
           다른 쌤들 결과보기
         </Button>
+        
+        <div className="pt-4 border-t border-gray-200">
+          <a href="/admin-login" className="block">
+            <Button 
+              variant="ghost"
+              className="w-full text-gray-400 hover:text-gray-600 text-sm"
+            >
+              🔒 관리자
+            </Button>
+          </a>
+        </div>
       </div>
     </div>
   );

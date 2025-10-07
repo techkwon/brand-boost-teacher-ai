@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.sync-storage-db]
 verify_jwt = false
+
+[functions.admin-auth]
+verify_jwt = false
+
+[functions.admin-cleanup]
+verify_jwt = false
