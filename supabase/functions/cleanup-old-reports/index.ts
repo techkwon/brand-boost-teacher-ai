@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_REPORTS = 500; // 무료 티어 1GB 제한을 위해 500개로 제한
+const MAX_REPORTS = 400; // 무료 티어 1GB 제한을 위해 400개로 조정
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {

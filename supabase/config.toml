@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.cleanup-old-reports]
 verify_jwt = false
+
+[functions.sync-storage-db]
+verify_jwt = false

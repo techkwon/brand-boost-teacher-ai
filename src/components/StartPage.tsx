@@ -13,6 +13,17 @@ const StartPage = ({ onPageChange }: StartPageProps) => {
   const handleCleanup = async () => {
     setIsCleaningUp(true);
     try {
+      // 1. DB와 스토리지 동기화
+      console.log('DB와 스토리지 동기화 시작...');
+      const syncResult = await supabase.functions.invoke('sync-storage-db');
+      
+      if (syncResult.error) {
+        console.error('동기화 실패:', syncResult.error);
+      } else {
+        console.log('동기화 완료:', syncResult.data);
+      }
+
+      // 2. 오래된 리포트 정리
       console.log('오래된 리포트 정리 시작...');
       const { data, error } = await supabase.functions.invoke('cleanup-old-reports');
       
@@ -25,11 +36,12 @@ const StartPage = ({ onPageChange }: StartPageProps) => {
         });
       } else {
         console.log('정리 완료:', data);
+        const syncData = syncResult.data || {};
+        const cleanupData = data || {};
+        
         toast({
           title: "정리 완료!",
-          description: data.deletedCount 
-            ? `${data.deletedCount}개의 오래된 리포트가 삭제되었습니다.`
-            : "정리할 리포트가 없습니다.",
+          description: `동기화: ${syncData.orphansDeleted || 0}개 고아 레코드 삭제\n정리: ${cleanupData.deletedCount || 0}개 오래된 리포트 삭제`,
         });
       }
     } catch (error) {
@@ -71,7 +83,7 @@ const StartPage = ({ onPageChange }: StartPageProps) => {
           variant="outline"
           className="w-full border border-gray-300 text-gray-600 hover:bg-gray-50 font-bold py-2 px-4 rounded-xl text-sm transition duration-300 disabled:opacity-50"
         >
-          {isCleaningUp ? '정리 중...' : '🧹 오래된 데이터 정리 (500개 초과 시)'}
+          {isCleaningUp ? '정리 중...' : '🧹 데이터 정리 (DB↔스토리지 동기화 + 400개 초과 시 삭제)'}
         </Button>
       </div>
     </div>
