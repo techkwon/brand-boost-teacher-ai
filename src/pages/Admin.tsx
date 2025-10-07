@@ -7,43 +7,65 @@ import { toast } from '@/hooks/use-toast';
 import { loadReportsFromSupabase } from '@/services/supabaseService';
 
 const Admin = () => {
+  const [password, setPassword] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [keepCount, setKeepCount] = useState('500');
   const [isLoading, setIsLoading] = useState(false);
   const [totalReports, setTotalReports] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // 토큰 확인
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      navigate('/admin-login');
-      return;
+    // 세션 확인
+    const sessionAuth = sessionStorage.getItem('adminAuth');
+    if (sessionAuth === 'true') {
+      setIsAuthenticated(true);
+      loadReports();
     }
+  }, []);
 
-    // 토큰 유효성 검증
+  const loadReports = async () => {
     try {
-      const decoded = JSON.parse(atob(token));
-      if (decoded.exp < Date.now()) {
-        localStorage.removeItem('adminToken');
+      const reports = await loadReportsFromSupabase();
+      setTotalReports(reports.length);
+    } catch (error) {
+      console.error('Failed to load reports:', error);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-auth', {
+        body: { password }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        sessionStorage.setItem('adminAuth', 'true');
+        setIsAuthenticated(true);
         toast({
-          title: '세션 만료',
-          description: '다시 로그인해주세요.',
+          title: '인증 성공',
+          description: '관리자 페이지에 접속했습니다.',
+        });
+        loadReports();
+      } else {
+        toast({
+          title: '인증 실패',
+          description: '비밀번호를 확인해주세요.',
           variant: 'destructive',
         });
-        navigate('/admin-login');
-        return;
       }
-    } catch {
-      localStorage.removeItem('adminToken');
-      navigate('/admin-login');
-      return;
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: '오류 발생',
+        description: '인증 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      });
     }
-
-    // 현재 리포트 개수 가져오기
-    loadReportsFromSupabase().then(reports => {
-      setTotalReports(reports.length);
-    });
-  }, [navigate]);
+  };
 
   const handleCleanup = async () => {
     const count = parseInt(keepCount);
@@ -59,12 +81,10 @@ const Admin = () => {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('adminToken');
-      
       const { data, error } = await supabase.functions.invoke('admin-cleanup', {
         body: { keepCount: count },
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${sessionStorage.getItem('adminAuth')}`
         }
       });
 
@@ -76,9 +96,7 @@ const Admin = () => {
           description: data.message,
         });
         
-        // 리포트 개수 업데이트
-        const reports = await loadReportsFromSupabase();
-        setTotalReports(reports.length);
+        loadReports();
       } else {
         toast({
           title: '정리 실패',
@@ -99,13 +117,57 @@ const Admin = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminAuth');
+    setIsAuthenticated(false);
+    setPassword('');
     toast({
       title: '로그아웃',
       description: '로그아웃되었습니다.',
     });
-    navigate('/');
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
+          <h1 className="text-3xl font-bold text-teal-700 mb-6 text-center">관리자 인증</h1>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                비밀번호
+              </label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="관리자 비밀번호를 입력하세요"
+                required
+                className="w-full"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              인증
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/')}
+              className="w-full"
+            >
+              홈으로 돌아가기
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-blue-50 p-4">
